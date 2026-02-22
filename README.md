@@ -1,4 +1,4 @@
-# CIP FS26 – Group 203  
+# CIP FS26 – Group 202  
 
 Swiss Job Market Trends & Salary Transparency Analysis  
 
