@@ -1,13 +1,12 @@
-
+# src/pipeline.py
 from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-
 import pandas as pd
 
-from src.sources import datacareer, bfs  # ictjobs later
-# from src import cleaning, skills
+from src.sources.datacareer_selenium import collect_raw as collect_raw_selenium
+from src.sources.datacareer import to_schema
 
 DATA_RAW = Path("data/raw")
 DATA_PROCESSED = Path("data/processed")
@@ -19,19 +18,24 @@ def run() -> pd.DataFrame:
 
     scraped_at = datetime.now().isoformat(timespec="seconds")
 
-    # 1) collect
-    raw_jobs = datacareer.collect_raw(limit=10, max_pages=2)
-    jobs = datacareer.to_schema(raw_jobs, scraped_at=scraped_at)
+    # 1) Collect using Selenium
+    raw_jobs = collect_raw_selenium(
+        limit=20,
+        load_more_clicks=2,
+        headless=True
+    )
 
-    # Example: BFS (if you have it)
-    # raw_bfs = bfs.collect_raw(...)
-    # bfs_df = bfs.to_schema(raw_bfs, scraped_at=scraped_at)
+    # 2) Map to common schema
+    jobs = to_schema(raw_jobs, scraped_at=scraped_at)
 
-    # 2) merge
+    # 3) Merge (single source for now)
     df = pd.concat([jobs], ignore_index=True)
 
-    # 3) save
-    df.to_csv(DATA_PROCESSED / f"jobs_combined_{scraped_at}.csv", index=False)
+    # 4) Save
+    out_path = DATA_PROCESSED / f"jobs_combined_{scraped_at}.csv"
+    df.to_csv(out_path, index=False)
+
+    print(f"Saved: {out_path}")
     return df
 
 
