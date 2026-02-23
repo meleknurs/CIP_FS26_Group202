@@ -12,11 +12,8 @@ from bs4 import BeautifulSoup
 from src.schema import SCHEMA_COLUMNS
 
 
-# NOTE: Your HTML is from datacareer.ch (not datajobs.ch)
 BASE_URL = "https://www.datacareer.ch"
-DEFAULT_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; CIP-StudentProject/1.0)"
-}
+DEFAULT_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; CIP-StudentProject/1.0)"}
 
 
 def _make_job_id(source: str, url: str) -> str:
@@ -33,19 +30,8 @@ def _get_soup(url: str, timeout: int = 30) -> BeautifulSoup:
     return BeautifulSoup(resp.text, "html.parser")
 
 
-def collect_raw(
-    limit: int = 60,
-    start_url: Optional[str] = None,
-    max_pages: int = 10,
-) -> pd.DataFrame:
-    """
-    Updated collector for datacareer.ch job listings (category: Data Science).
-
-    The website uses a "Load more" button, but under the hood it loads:
-      /jobs/?categories[]=Data Science&page=2,3,...
-
-    So we can emulate this with requests + BeautifulSoup (no Selenium needed here).
-    """
+def collect_raw(limit: int = 60, start_url: Optional[str] = None, max_pages: int = 10) -> pd.DataFrame:
+    """Requests collector for datacareer Data Science listings."""
     source = "datacareer"
 
     # Matches the site JS pattern; percent-encoded brackets are fine too
@@ -68,11 +54,10 @@ def collect_raw(
 
         cards = soup.select("article.listing-item.listing-item__jobs")
         if not cards:
-            # No more listings
             break
 
         for card in cards:
-            # Title + detail URL
+            # title + url
             a = card.select_one(".listing-item__title a.link")
             title = _clean_text(a.get_text(" ", strip=True)) if a else ""
             url = urljoin(BASE_URL, a["href"]) if a and a.get("href") else ""
@@ -95,7 +80,6 @@ def collect_raw(
             description_raw = _clean_text(card.select_one(".listing-item__desc").get_text(" ", strip=True)) \
                 if card.select_one(".listing-item__desc") else ""
 
-            # Salary doesn't appear in listing HTML (in your snippet), keep empty for now
             salary_raw = ""
 
             rows.append(
@@ -120,10 +104,7 @@ def collect_raw(
 
 
 def to_schema(df_raw: pd.DataFrame, scraped_at: str) -> pd.DataFrame:
-    """
-    Map raw dataframe to the common schema.
-    Missing fields are filled with empty strings / NA.
-    """
+    """Map raw dataframe to the common schema."""
     df = df_raw.copy()
 
     # Ensure required base cols exist
@@ -143,20 +124,20 @@ def to_schema(df_raw: pd.DataFrame, scraped_at: str) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = ""
 
-    # Minimal cleaning/enrichment placeholders
+    # Minimal enrichment
     df["scraped_at"] = scraped_at
     df["canton"] = ""          # optionally map later from location_raw
     df["seniority"] = ""       # optionally infer later from title
     df["description_clean"] = df["description_raw"].fillna("").map(_clean_text)
 
-    # Skills: keep empty for now; your shared skills.py can enrich later
+    # Skills placeholders
     df["skills"] = ""
     df["skill_count"] = 0
 
     df["salary_raw"] = df["salary_raw"].fillna("").astype(str)
     df["salary_available"] = (df["salary_raw"].str.len() > 0).astype(int)
 
-    # Fill any missing schema columns
+    # Ensure all schema columns exist
     for c in SCHEMA_COLUMNS:
         if c not in df.columns:
             df[c] = ""

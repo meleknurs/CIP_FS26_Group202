@@ -18,20 +18,16 @@ def run() -> pd.DataFrame:
 
     scraped_at = datetime.now().isoformat(timespec="seconds")
 
-    # 1) Collect using Selenium
-    raw_jobs = collect_raw_selenium(
-        limit=20,
-        load_more_clicks=2,
-        headless=True
-    )
+    # Collect using Selenium
+    raw_jobs = collect_raw_selenium(limit=20, load_more_clicks=2, headless=True)
 
-    # 2) Map to common schema
+    # Map to schema
     jobs = to_schema(raw_jobs, scraped_at=scraped_at)
 
-    # 3) Merge (single source for now)
+    # Merge
     df = pd.concat([jobs], ignore_index=True)
 
-    # 4) Save
+    # Save
     out_path = DATA_PROCESSED / f"jobs_combined_{scraped_at}.csv"
     df.to_csv(out_path, index=False)
 

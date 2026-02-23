@@ -14,7 +14,6 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# If you want auto driver:
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 
@@ -28,8 +27,7 @@ def _make_job_id(source: str, url: str) -> str:
 
 
 def _clean_text(s: str) -> str:
-    s = re.sub(r"\s+", " ", s or "").strip()
-    return s
+    return re.sub(r"\s+", " ", s or "").strip()
 
 
 def _make_driver(headless: bool = True) -> webdriver.Chrome:
@@ -46,12 +44,7 @@ def _make_driver(headless: bool = True) -> webdriver.Chrome:
 
 
 def collect_raw(limit: int = 30, load_more_clicks: int = 3, headless: bool = True) -> pd.DataFrame:
-    """
-    1) Open category page
-    2) Click 'Load more' a few times (dynamic)
-    3) Extract job detail URLs from the expanded HTML
-    4) Visit job pages and extract basic fields
-    """
+    """Selenium collector: click 'Load more' and extract listing fields."""
     source = "datacareer"
     driver = _make_driver(headless=headless)
 
@@ -59,34 +52,17 @@ def collect_raw(limit: int = 30, load_more_clicks: int = 3, headless: bool = Tru
         driver.get(START_URL)
         wait = WebDriverWait(driver, 15)
 
-        # Optional: accept cookies if popup exists (site dependent)
-        # You can add later if needed.
-
-        # Click "Load more" a few times
         for _ in range(load_more_clicks):
             try:
                 btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.load-more")))
                 driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
                 time.sleep(0.5)
                 btn.click()
-                time.sleep(1.5)  # allow AJAX to load
+                time.sleep(1.5)
             except Exception:
                 break
 
-        # Parse current page HTML (after loads)
-        soup = BeautifulSoup(driver.page_source, "lxml")
-
-        # job cards look like: article.listing-item ... and title link is inside
-        job_urls = []
-        for a in soup.select("article.listing-item a.link[href]"):
-            href = a.get("href")
-            if not href:
-                continue
-            full = urljoin(BASE_URL, href)
-            if full.startswith(BASE_URL) and full not in job_urls:
-                job_urls.append(full)
-            if len(job_urls) >= limit:
-                break
+        soup = BeautifulSoup(driver.page_source, "html.parser")
 
         rows = []
         for card in soup.select("article.listing-item.listing-item__jobs"):
