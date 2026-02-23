@@ -39,7 +39,7 @@ src/
     ictjobs.py, bfs.py              ← implement these
 notebooks/
   analysis and visualizations
-CONTRIBUTING.md                     ← collector guidelines
+
 ```
 
 ### Technology
