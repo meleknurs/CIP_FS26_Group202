@@ -25,6 +25,7 @@ SEARCH_URL = "https://www.jobup.ch/en/jobs/"
 
 DEFAULT_ROLES = [
     "data scientist",
+    "data analyst",
     "machine learning engineer",
     "data engineer",
     "ai engineer",
