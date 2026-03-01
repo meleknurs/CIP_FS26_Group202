@@ -216,7 +216,6 @@ data/raw/*.json
 data/raw/*.xlsx
 
 # Processed datasets
-data/processed/*.csv
 data/processed/*.parquet
 
 # External large datasets
