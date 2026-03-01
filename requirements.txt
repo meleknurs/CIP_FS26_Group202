@@ -1,11 +1,4 @@
 pandas
-numpy
-matplotlib
-seaborn
 selenium
 beautifulsoup4
-requests
-lxml
-jupyter
-
 webdriver-manager

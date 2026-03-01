@@ -1,3 +1,1 @@
-from . import datacareer
-from . import ictjobs
-from . import bfs
+from . import jobup_selenium

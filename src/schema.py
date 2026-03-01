@@ -4,11 +4,13 @@ SCHEMA_COLUMNS = [
 	"source",
 	"url",
 	"job_id",
+	"search_term",
 	"title",
 	"company",
 	"location_raw",
 	"posted_date",
 	"employment_type",
+	"workload_raw",
 	"salary_raw",
 	"description_raw",
 
@@ -21,4 +23,3 @@ SCHEMA_COLUMNS = [
 	"skill_count",
 	"salary_available",
 ]
-
