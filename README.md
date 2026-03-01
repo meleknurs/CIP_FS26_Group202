@@ -21,10 +21,17 @@ Collect job listings from Jobup.ch via Selenium.
 
    Common options:
    ```bash
-   python3 -m src.pipeline --roles "data scientist,machine learning engineer,data engineer,ai engineer" --limit 5000 --max-pages-per-role 200 --verbose
+   python3 -m src.pipeline --roles "data scientist,data analyst,machine learning engineer,data engineer,ai engineer" --limit 5000 --max-pages-per-role 200 --verbose
    ```
    - `--roles`: comma-separated role list
    - `--no-details`: skip opening detail pages (faster, no full description)
+
+   Default roles in the scraper:
+   - `data scientist`
+   - `data analyst`
+   - `machine learning engineer`
+   - `data engineer`
+   - `ai engineer`
 
 ### Project Structure
 
