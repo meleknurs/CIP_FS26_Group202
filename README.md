@@ -1,10 +1,11 @@
-# CIP FS26 – Group 202
+# CIP FS26 – Group 202  
+## Swiss Job Market Trends & Salary Transparency Analysis
 
-Swiss Job Market Trends & Salary Transparency Analysis
+---
 
-## Phase 1: Web Scraping (Current)
+## Phase 1: Web Scraping (Completed)
 
-Collect job listings from Jobup.ch via Selenium.
+Collect job listings from **Jobup.ch** using Selenium and export a schema-aligned dataset.
 
 ### Quick Start
 
@@ -17,34 +18,47 @@ Collect job listings from Jobup.ch via Selenium.
    ```bash
    python3 -m src.pipeline
    ```
-   Output: CSV file in `data/processed/jobs_combined_{timestamp}.csv`
 
-   Common options:
-   ```bash
-   python3 -m src.pipeline --roles "data scientist,data analyst,machine learning engineer,data engineer,ai engineer" --limit 5000 --max-pages-per-role 200 --verbose
-   ```
-   - `--roles`: comma-separated role list
-   - `--no-details`: skip opening detail pages (faster, no full description)
+   **Output:**  
+   `data/processed/jobs_combined_{timestamp}.csv`
 
-   Default roles in the scraper:
-   - `data scientist`
-   - `data analyst`
-   - `machine learning engineer`
-   - `data engineer`
-   - `ai engineer`
-  
+### Common Options
+
+```bash
+python3 -m src.pipeline \
+  --roles "data scientist,data analyst,machine learning engineer,data engineer,ai engineer" \
+  --limit 5000 \
+  --max-pages-per-role 200 \
+  --verbose
 ```
+
+- `--roles`: comma-separated list of search roles  
+- `--limit`: maximum number of jobs per role  
+- `--max-pages-per-role`: pagination cap  
+- `--no-details`: skip opening detail pages (faster, no full description)  
+
+### Default Roles
+
+- `data scientist`
+- `data analyst`
+- `machine learning engineer`
+- `data engineer`
+- `ai engineer`
+
+---
+
 ## Phase 2: Micro-Level Data Preprocessing (Completed)
 
 Transforms the raw scraped dataset into an analysis-ready micro dataset.
 
-**Input**  
+### Input
 `data/processed/jobs_combined_{timestamp}.csv`
 
-**Output**  
+### Output
 `data/processed/jobs_micro_cleaned_final.csv`
 
-### Key Steps
+### Key Preprocessing Steps
+
 - Structural validation (schema check, duplicates, missing values)
 - Text cleaning (`description_clean`, `title_clean`)
 - City extraction + canton mapping (`city_clean`, `canton`)
@@ -54,32 +68,47 @@ Transforms the raw scraped dataset into an analysis-ready micro dataset.
 - Workload percentage extraction (`workload_min`)
 - Datetime conversion (`posted_date`, `scraped_at`)
 
-The cleaned dataset is now ready for regional analysis and BFS macro-level integration.
+The cleaned dataset is now ready for:
+- Regional comparison
+- Skill demand analysis
+- Salary transparency evaluation
+- Integration with BFS macro-level vacancy data
 
-```
+---
 
-### Project Structure
+## Project Structure
 
 ```
 data/
-  raw/, external/, processed/      ← outputs saved here
+  raw/           # original scraped data
+  external/      # external macro datasets (e.g., BFS)
+  processed/     # cleaned & analysis-ready datasets
+
 src/
-  pipeline.py                       ← main entry point
-  schema.py                         ← shared column schema
-  cleaning.py                       ← raw → schema mapping
+  pipeline.py        # main entry point
+  schema.py          # shared column schema
+  cleaning.py        # raw → schema mapping
   sources/
-    jobup_selenium.py               ← active collector
+    jobup_selenium.py  # active collector
+
 notebooks/
   analysis and visualizations
-
 ```
 
-### Technology
+---
 
-- **Dynamic pages** (JavaScript load): `Selenium` + `webdriver-manager` (auto-download Chrome driver)
-- **Data format**: Pandas DataFrame → CSV
+## Technology
 
-### Notes
+- **Web scraping:** Selenium + webdriver-manager  
+- **Data handling:** Pandas  
+- **Output format:** CSV  
+
+---
+
+## Notes
 
 - Phase 1 focuses scraping from Jobup and exporting schema-aligned CSV.
 - Keep functions simple; add short, clear comments.
+- Phase 2 focuses on transparent, rule-based preprocessing.
+- The project follows a modular pipeline design for easy extension (e.g., BFS API integration in Phase 3).
+
