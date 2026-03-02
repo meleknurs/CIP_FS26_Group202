@@ -32,6 +32,31 @@ Collect job listings from Jobup.ch via Selenium.
    - `machine learning engineer`
    - `data engineer`
    - `ai engineer`
+  
+```
+## Phase 2: Micro-Level Data Preprocessing (Completed)
+
+Transforms the raw scraped dataset into an analysis-ready micro dataset.
+
+**Input**  
+`data/processed/jobs_combined_{timestamp}.csv`
+
+**Output**  
+`data/processed/jobs_micro_cleaned_final.csv`
+
+### Key Steps
+- Structural validation (schema check, duplicates, missing values)
+- Text cleaning (`description_clean`, `title_clean`)
+- City extraction + canton mapping (`city_clean`, `canton`)
+- Salary transparency reconstruction (`salary_available`)
+- Seniority classification (`intern`, `junior`, `mid`, `senior`, `lead`)
+- Skill extraction + `skill_count` (regex-based, conservative matching)
+- Workload percentage extraction (`workload_min`)
+- Datetime conversion (`posted_date`, `scraped_at`)
+
+The cleaned dataset is now ready for regional analysis and BFS macro-level integration.
+
+```
 
 ### Project Structure
 
