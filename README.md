@@ -78,63 +78,35 @@ The cleaned dataset is now ready for:
 
 ## Phase 3: Macro-Level Data Integration (Completed)
 
-To enrich the job posting dataset with macroeconomic labour market indicators, we integrated vacancy data from the Swiss Federal Statistical Office (BFS).
+This phase enriches the primary job posting dataset with macroeconomic labor market indicators from the **Swiss Federal Statistical Office (BFS)** to provide market-wide context.
 
-### Data Source
+### Data Source and Scope
 
-The macro-level vacancy data was obtained via the BFS API and includes:
+Macro-level vacancy data is retrieved via the **BFS API**, focusing on two primary dimensions:
+* **Regional Statistics:** BFS Major Regions (e.g., Lake Geneva, Zurich).
+* **Economic Divisions:** NOGA Classification (specifically **58-63 ICT**).
 
-- Regional vacancy statistics (BFS major regions)
-- Vacancy statistics by economic division (NOGA classification)
+### Processing Pipeline
 
-These datasets provide quarterly indicators of labour demand across Switzerland.
+1.  **Ingestion:** Automated retrieval and conversion of raw API responses to pandas DataFrames.
+2.  **Cleaning:** Standardization of column names (English), removal of aggregates, and handling of missing values.
+3.  **Tidying:** Reshaping data into a long-form format featuring `region`, `industry`, `quarter`, and `vacancies`.
+4.  **Temporal Alignment:** Since current job postings (2026Q1) exceed the latest BFS release (2025Q4), a `macro_quarter` proxy was implemented to map postings to the most recent available macro indicators.
 
-### Processing Steps
+### Integration Logic
 
-1. Data was fetched from the BFS API.
-2. Raw API responses were converted into structured pandas DataFrames.
-3. Column names were standardized and translated to English.
-4. Aggregates and missing values were removed.
-5. The datasets were reshaped into tidy format with:
+The datasets are merged using keys derived from the micro-level job data:
 
-- `region`
-- `industry`
-- `quarter`
-- `vacancies`
+| **quarter** | Extracted from job posting timestamps. |
+| **region** | Mapped from Canton-level data to BFS Major Regions. |
+| **industry** | Assigned to `58-63 ICT` based on technical role classification. |
 
-The cleaned job posting dataset was merged with the macro-level BFS vacancy indicators to create a combined analysis dataset.
+### Final Dataset Structure
 
-### Merge Keys
+The resulting dataset, `data/processed/jobs_micro_macro_merged_final.csv`, combines:
 
-The integration required constructing several variables from the micro dataset:
-
-- `quarter` derived from job posting dates
-- `region` derived from canton information using BFS major region mapping
-- `industry` assigned to the ICT sector (`58-63 ICT`) based on the technical nature of the job roles
-
-### Time Alignment
-
-The job postings dataset contains mostly observations from **2026Q1**, while the BFS vacancy data is available only up to **2025Q4**.
-
-To align the datasets, a proxy variable `macro_quarter` was created. This allows job postings to be enriched with the **latest available macro labour market indicators**.
-
-### Final Dataset
-
-The final merged dataset includes:
-
-**Micro-level variables**
-- job title and role
-- company
-- location (city, canton, region)
-- job description
-- extracted skills
-- salary transparency
-
-**Macro-level variables**
-- regional vacancy levels
-- ICT industry vacancy levels
-
-The final analysis dataset is stored as: data/processed/jobs_micro_macro_merged_final.csv
+* **Micro-level Variables:** Job title, company, location, description, extracted skills, and salary transparency.
+* **Macro-level Variables:** Regional vacancy levels and ICT-specific industry demand indices.
 
 ---
 
