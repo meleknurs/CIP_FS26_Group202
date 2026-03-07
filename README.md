@@ -146,8 +146,8 @@ notebooks/
 
 ## Notes
 
-- Phase 1 focuses scraping from Jobup and exporting schema-aligned CSV.
-- Keep functions simple; add short, clear comments.
-- Phase 2 focuses on transparent, rule-based preprocessing.
-- The project follows a modular pipeline design for easy extension (e.g., BFS API integration in Phase 3).
+- Phase 1 focuses on scraping job postings from Jobup and exporting schema-aligned CSV files.
+- Phase 2 applies transparent, rule-based preprocessing to standardize job metadata and extracted skills.
+- Phase 3 integrates BFS vacancy indicators and merges macro-level labour market data with the job postings dataset.
+- The project follows a modular pipeline design, allowing easy extension (e.g., adding roles, platforms, or macro datasets).
 
