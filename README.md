@@ -97,9 +97,14 @@ Macro-level vacancy data is retrieved via the **BFS API**, focusing on two prima
 
 The datasets are merged using keys derived from the micro-level job data:
 
-| **quarter** | Extracted from job posting timestamps. |
-| **region** | Mapped from Canton-level data to BFS Major Regions. |
-| **industry** | Assigned to `58-63 ICT` based on technical role classification. |
+- `quarter`  
+  Extracted from job posting timestamps.
+
+- `region`  
+  Mapped from canton-level information to BFS major regions.
+
+- `industry`  
+  Assigned to the ICT sector (`58-63 ICT`) based on the technical nature of the job roles in the dataset.
 
 ### Final Dataset Structure
 
