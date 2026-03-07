@@ -76,6 +76,50 @@ The cleaned dataset is now ready for:
 
 ---
 
+## Phase 3: Macro-Level Data Integration
+
+To enrich the job posting dataset with macroeconomic labour market indicators, we integrated vacancy data from the Swiss Federal Statistical Office (BFS).
+
+### Data Source
+
+The macro-level vacancy data was obtained via the BFS API and includes:
+
+- Regional vacancy statistics (BFS major regions)
+- Vacancy statistics by economic division (NOGA classification)
+
+These datasets provide quarterly indicators of labour demand across Switzerland.
+
+### Processing Steps
+
+1. Data was fetched from the BFS API.
+2. Raw API responses were converted into structured pandas DataFrames.
+3. Column names were standardized and translated to English.
+4. Aggregates and missing values were removed.
+5. The datasets were reshaped into tidy format with:
+
+- `region`
+- `industry`
+- `quarter`
+- `vacancies`
+
+The cleaned job posting dataset was merged with the macro-level BFS vacancy indicators to create a combined analysis dataset.
+
+### Merge Keys
+
+The integration required constructing several variables from the micro dataset:
+
+- `quarter` derived from job posting dates
+- `region` derived from canton information using BFS major region mapping
+- `industry` assigned to the ICT sector (`58-63 ICT`) based on the technical nature of the job roles
+
+### Time Alignment
+
+The job postings dataset contains mostly observations from **2026Q1**, while the BFS vacancy data is available only up to **2025Q4**.
+
+To align the datasets, a proxy variable `macro_quarter` was created:
+
+---
+
 ## Project Structure
 
 ```
