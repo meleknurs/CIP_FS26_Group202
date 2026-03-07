@@ -116,7 +116,25 @@ The integration required constructing several variables from the micro dataset:
 
 The job postings dataset contains mostly observations from **2026Q1**, while the BFS vacancy data is available only up to **2025Q4**.
 
-To align the datasets, a proxy variable `macro_quarter` was created:
+To align the datasets, a proxy variable `macro_quarter` was created. This allows job postings to be enriched with the **latest available macro labour market indicators**.
+
+### Final Dataset
+
+The final merged dataset includes:
+
+**Micro-level variables**
+- job title and role
+- company
+- location (city, canton, region)
+- job description
+- extracted skills
+- salary transparency
+
+**Macro-level variables**
+- regional vacancy levels
+- ICT industry vacancy levels
+
+The final analysis dataset is stored as: data/processed/jobs_micro_macro_merged_final.csv
 
 ---
 
