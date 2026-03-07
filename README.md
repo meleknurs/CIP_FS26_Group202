@@ -76,7 +76,7 @@ The cleaned dataset is now ready for:
 
 ---
 
-## Phase 3: Macro-Level Data Integration
+## Phase 3: Macro-Level Data Integration (Completed)
 
 To enrich the job posting dataset with macroeconomic labour market indicators, we integrated vacancy data from the Swiss Federal Statistical Office (BFS).
 
