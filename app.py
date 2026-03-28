@@ -4,6 +4,9 @@ import ast
 from collections import Counter
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -34,6 +37,11 @@ sns.set(style="whitegrid")
 # =========================================================
 # Utility helpers
 # =========================================================
+def show_fig(fig) -> None:
+    st.pyplot(fig, clear_figure=True)
+    plt.close(fig)
+
+
 def normalize_skills(skills: list[object]) -> list[str]:
     skill_map = {
         "py": "python",
@@ -219,7 +227,12 @@ def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
     st.sidebar.multiselect("Seniority", seniorities, key="f_seniorities")
 
     st.sidebar.text_input("Search title or company", key="q_search")
-    st.sidebar.slider("Minimum sample size for grouped charts", 1, 30, key="min_group_n")
+    st.sidebar.slider(
+        "Minimum sample size for grouped charts",
+        1,
+        30,
+        key="min_group_n",
+    )
 
     filtered = df.copy()
 
@@ -278,9 +291,34 @@ def metric_row(df: pd.DataFrame) -> None:
     c8.metric("Postings with salary", f"{int(df['salary_available'].sum()):,}")
 
 
+def render_executive_summary(df: pd.DataFrame) -> None:
+    if df.empty:
+        return
+
+    role_counts = df["role"].dropna().value_counts()
+    canton_counts = df["canton"].dropna().value_counts()
+    skills = build_top_skills(df, 1)
+
+    top_role = role_counts.index[0] if not role_counts.empty else "N/A"
+    top_canton = canton_counts.index[0] if not canton_counts.empty else "N/A"
+    top_skill = skills.iloc[0]["skill"] if not skills.empty else "N/A"
+    salary_rate = df["salary_available"].mean() * 100 if len(df) else 0
+
+    st.info(
+        f"**Executive summary**  \n"
+        f"The filtered dataset suggests a Swiss data job market led by **{top_role}** roles, "
+        f"geographically concentrated in **{top_canton}**, and strongly centered on **{top_skill}** "
+        f"as a core skill. At the same time, salary disclosure remains limited at **{salary_rate:.2f}%**, "
+        f"which makes transparency itself an important analytical signal."
+    )
+
+
 def build_top_skills(df: pd.DataFrame, top_n: int = 15) -> pd.DataFrame:
     all_skills = [skill for skills in df["skills_list"] for skill in skills]
-    return pd.DataFrame(Counter(all_skills).most_common(top_n), columns=["skill", "count"])
+    return pd.DataFrame(
+        Counter(all_skills).most_common(top_n),
+        columns=["skill", "count"],
+    )
 
 
 # =========================================================
@@ -315,6 +353,7 @@ def render_data_quality_text(df: pd.DataFrame) -> None:
     missing_seniority = df["seniority"].isna().mean() * 100 if len(df) else 0
     missing_workload = df["workload_min"].isna().mean() * 100 if "workload_min" in df.columns else 100.0
     skills_zero = (df["skill_count"].fillna(0) == 0).mean() * 100 if len(df) else 0
+    no_salary = (df["salary_available"].fillna(0) == 0).mean() * 100 if len(df) else 0
 
     st.subheader("Data Quality and Methodology")
     st.markdown(
@@ -332,6 +371,7 @@ def render_data_quality_text(df: pd.DataFrame) -> None:
 - Seniority missing: **{missing_seniority:.1f}%**
 - Workload missing: **{missing_workload:.1f}%**
 - Zero extracted skills: **{skills_zero:.1f}%**
+- No salary information: **{no_salary:.1f}%**
 
 **Interpretation notes**
 - Small groups can produce unstable percentages.
@@ -359,11 +399,18 @@ def plot_role_distribution(df: pd.DataFrame) -> None:
         height=0.65,
     )
     for bar in bars:
-        ax.text(bar.get_width() + 1, bar.get_y() + bar.get_height() / 2, f"{int(bar.get_width())}", va="center", fontsize=9, color=TEXT)
+        ax.text(
+            bar.get_width() + 1,
+            bar.get_y() + bar.get_height() / 2,
+            f"{int(bar.get_width())}",
+            va="center",
+            fontsize=9,
+            color=TEXT,
+        )
     ax.set_xlabel("Number of postings")
     ax.set_title("Job Role Distribution")
     style_ax(ax, remove_left=True)
-    st.pyplot(fig)
+    show_fig(fig)
 
 
 def plot_canton_distribution(df: pd.DataFrame) -> None:
@@ -378,13 +425,105 @@ def plot_canton_distribution(df: pd.DataFrame) -> None:
     cols = [cmap(0.3 + 0.65 * v) for v in norm_vals]
 
     fig, ax = plt.subplots(figsize=(8, 6), facecolor=BG)
-    bars = ax.barh(loc_counts.index[::-1], loc_counts.values[::-1], color=cols[::-1], edgecolor="none", height=0.7)
+    bars = ax.barh(
+        loc_counts.index[::-1],
+        loc_counts.values[::-1],
+        color=cols[::-1],
+        edgecolor="none",
+        height=0.7,
+    )
     for bar in bars:
-        ax.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height() / 2, f"{int(bar.get_width())}", va="center", fontsize=8, color=TEXT)
+        ax.text(
+            bar.get_width() + 0.5,
+            bar.get_y() + bar.get_height() / 2,
+            f"{int(bar.get_width())}",
+            va="center",
+            fontsize=8,
+            color=TEXT,
+        )
     ax.set_xlabel("Postings")
     ax.set_title("Job Postings by Canton")
     style_ax(ax, remove_left=True)
-    st.pyplot(fig)
+    show_fig(fig)
+
+
+def plot_top_companies(df: pd.DataFrame, top_n: int = 10) -> None:
+    company_counts = df["company"].dropna().astype(str)
+    company_counts = company_counts[
+        company_counts.str.strip() != ""
+    ].value_counts().head(top_n)
+
+    if company_counts.empty:
+        st.info("No company data after filters.")
+        return
+
+    fig, ax = plt.subplots(figsize=(8, 4.5), facecolor=BG)
+    bars = ax.barh(
+        company_counts.index[::-1],
+        company_counts.values[::-1],
+        color=ROSE,
+        edgecolor="none",
+        height=0.6,
+    )
+    for bar in bars:
+        ax.text(
+            bar.get_width() + 0.3,
+            bar.get_y() + bar.get_height() / 2,
+            f"{int(bar.get_width())}",
+            va="center",
+            fontsize=8,
+            color=TEXT,
+        )
+    ax.set_xlabel("Postings")
+    ax.set_title(f"Top {top_n} Companies by Posting Count")
+    style_ax(ax, remove_left=True)
+    show_fig(fig)
+
+
+def plot_region_vs_macro(df: pd.DataFrame, min_group_n: int = 1) -> None:
+    rc = (
+        df[df["region"].notna()]
+        .groupby("region")
+        .agg(
+            job_postings=("job_id", "count"),
+            macro_vacancies=("macro_vacancies_region", "mean"),
+        )
+        .reset_index()
+    )
+
+    rc = rc[rc["job_postings"] >= min_group_n].sort_values(
+        "job_postings", ascending=True
+    )
+
+    if rc.empty or rc["macro_vacancies"].isna().all():
+        st.info("No sufficient region/macro data after filters.")
+        return
+
+    fig, ax1 = plt.subplots(figsize=(9, 5), facecolor=BG)
+    ax2 = ax1.twinx()
+
+    ax1.barh(
+        rc["region"],
+        rc["job_postings"],
+        color=BLUE,
+        alpha=0.85,
+        height=0.5,
+    )
+    ax2.plot(
+        rc["macro_vacancies"],
+        rc["region"],
+        "o-",
+        color=ORANGE,
+        linewidth=2,
+        markersize=7,
+    )
+
+    ax1.set_xlabel("Job Postings", color=BLUE)
+    ax2.set_xlabel("BFS Macro Vacancies", color=ORANGE)
+    ax1.set_title("Scraped Postings vs BFS Vacancies by Region")
+    ax1.spines[["top"]].set_visible(False)
+    ax2.spines[["top"]].set_visible(False)
+    show_fig(fig)
 
 
 def plot_top_skills(df: pd.DataFrame) -> None:
@@ -394,16 +533,32 @@ def plot_top_skills(df: pd.DataFrame) -> None:
         return
 
     cmap = plt.colormaps["YlGnBu"]
-    cols = [cmap(0.35 + 0.6 * (i / max(len(top15) - 1, 1))) for i in range(len(top15))]
+    cols = [
+        cmap(0.35 + 0.6 * (i / max(len(top15) - 1, 1)))
+        for i in range(len(top15))
+    ]
 
     fig, ax = plt.subplots(figsize=(8, 5), facecolor=BG)
-    bars = ax.barh(top15["skill"][::-1], top15["count"][::-1], color=cols[::-1], edgecolor="none", height=0.65)
+    bars = ax.barh(
+        top15["skill"][::-1],
+        top15["count"][::-1],
+        color=cols[::-1],
+        edgecolor="none",
+        height=0.65,
+    )
     for bar in bars:
-        ax.text(bar.get_width() + 0.5, bar.get_y() + bar.get_height() / 2, f"{int(bar.get_width())}", va="center", fontsize=8, color=TEXT)
+        ax.text(
+            bar.get_width() + 0.5,
+            bar.get_y() + bar.get_height() / 2,
+            f"{int(bar.get_width())}",
+            va="center",
+            fontsize=8,
+            color=TEXT,
+        )
     ax.set_xlabel("Postings mentioning skill")
     ax.set_title("Top 15 Most Requested Skills")
     style_ax(ax, remove_left=True)
-    st.pyplot(fig)
+    show_fig(fig)
 
 
 def plot_skill_count_by_role(df: pd.DataFrame) -> None:
@@ -412,8 +567,16 @@ def plot_skill_count_by_role(df: pd.DataFrame) -> None:
         st.info("No skill count data after filters.")
         return
 
-    role_order = plot_df.groupby("role")["skill_count"].median().sort_values(ascending=False).index
-    data_box = [plot_df.loc[plot_df["role"] == role, "skill_count"].values for role in role_order]
+    role_order = (
+        plot_df.groupby("role")["skill_count"]
+        .median()
+        .sort_values(ascending=False)
+        .index
+    )
+    data_box = [
+        plot_df.loc[plot_df["role"] == role, "skill_count"].values
+        for role in role_order
+    ]
 
     fig, ax = plt.subplots(figsize=(8, 4.5), facecolor=BG)
     bp = ax.boxplot(
@@ -434,7 +597,52 @@ def plot_skill_count_by_role(df: pd.DataFrame) -> None:
     ax.set_xlabel("Skill count per posting")
     ax.set_title("Skill Count Distribution by Role")
     style_ax(ax)
-    st.pyplot(fig)
+    show_fig(fig)
+
+
+def plot_missingness_overview(df: pd.DataFrame) -> None:
+    quality = pd.DataFrame(
+        {
+            "metric": [
+                "Missing canton",
+                "Missing region",
+                "Missing seniority",
+                "Missing workload",
+                "Zero extracted skills",
+                "No salary information",
+            ],
+            "pct": [
+                df["canton"].isna().mean() * 100 if len(df) else 0,
+                df["region"].isna().mean() * 100 if len(df) else 0,
+                df["seniority"].isna().mean() * 100 if len(df) else 0,
+                df["workload_min"].isna().mean() * 100 if "workload_min" in df.columns else 100.0,
+                (df["skill_count"].fillna(0) == 0).mean() * 100 if len(df) else 0,
+                (df["salary_available"].fillna(0) == 0).mean() * 100 if len(df) else 0,
+            ],
+        }
+    ).sort_values("pct", ascending=True)
+
+    fig, ax = plt.subplots(figsize=(8, 4.5), facecolor=BG)
+    bars = ax.barh(
+        quality["metric"],
+        quality["pct"],
+        color=GRAY,
+        edgecolor="none",
+        height=0.6,
+    )
+    for bar in bars:
+        ax.text(
+            bar.get_width() + 0.5,
+            bar.get_y() + bar.get_height() / 2,
+            f"{bar.get_width():.1f}%",
+            va="center",
+            fontsize=8,
+            color=TEXT,
+        )
+    ax.set_xlabel("% of postings")
+    ax.set_title("Data Quality Overview")
+    style_ax(ax, remove_left=True)
+    show_fig(fig)
 
 
 def compute_skill_presence_matrix(
@@ -443,7 +651,11 @@ def compute_skill_presence_matrix(
     top_n: int = 10,
     min_group_n: int = 5,
 ) -> pd.DataFrame:
-    top10 = [s for s, _ in Counter([s for sl in df["skills_list"] for s in sl]).most_common(top_n)]
+    top10 = [
+        s for s, _ in Counter(
+            [s for sl in df["skills_list"] for s in sl]
+        ).most_common(top_n)
+    ]
     if not top10:
         return pd.DataFrame()
 
@@ -481,7 +693,12 @@ def heatmap_top10_by_group(
     cmap: str,
     min_group_n: int = 5,
 ) -> None:
-    hm = compute_skill_presence_matrix(df, group_col, top_n=10, min_group_n=min_group_n)
+    hm = compute_skill_presence_matrix(
+        df,
+        group_col,
+        top_n=10,
+        min_group_n=min_group_n,
+    )
     if hm.empty:
         st.info(f"No sufficient {group_col} data after filters (min n={min_group_n}).")
         return
@@ -502,7 +719,7 @@ def heatmap_top10_by_group(
     ax.set_ylabel("")
     plt.xticks(rotation=30, ha="right")
     plt.yticks(rotation=0)
-    st.pyplot(fig)
+    show_fig(fig)
 
 
 def plot_workload_by_role(df: pd.DataFrame, min_group_n: int = 5) -> None:
@@ -529,7 +746,12 @@ def plot_workload_by_role(df: pd.DataFrame, min_group_n: int = 5) -> None:
 
     fig, ax = plt.subplots(figsize=(9, 4.5), facecolor=BG)
     bottom = np.zeros(len(wl_pct))
-    for cat in ["Full-time (>=90%)", "Flexible (61-89%)", "Part-time (<=60%)", "Unknown"]:
+    for cat in [
+        "Full-time (>=90%)",
+        "Flexible (61-89%)",
+        "Part-time (<=60%)",
+        "Unknown",
+    ]:
         if cat in wl_pct.columns:
             vals = wl_pct[cat].values
             ax.bar(
@@ -548,65 +770,47 @@ def plot_workload_by_role(df: pd.DataFrame, min_group_n: int = 5) -> None:
     ax.legend(bbox_to_anchor=(1.01, 1), loc="upper left", fontsize=9)
     plt.xticks(rotation=15, ha="right")
     style_ax(ax)
-    st.pyplot(fig)
-
-
-def plot_region_vs_macro(df: pd.DataFrame, min_group_n: int = 1) -> None:
-    rc = (
-        df[df["region"].notna()]
-        .groupby("region")
-        .agg(job_postings=("job_id", "count"), macro_vacancies=("macro_vacancies_region", "mean"))
-        .reset_index()
-    )
-
-    rc = rc[rc["job_postings"] >= min_group_n].sort_values("job_postings", ascending=True)
-
-    if rc.empty:
-        st.info("No region data after filters.")
-        return
-
-    fig, ax1 = plt.subplots(figsize=(9, 5), facecolor=BG)
-    ax2 = ax1.twinx()
-
-    ax1.barh(rc["region"], rc["job_postings"], color=BLUE, alpha=0.85, label="Job Postings", height=0.5)
-    ax2.plot(rc["macro_vacancies"], rc["region"], "o-", color=ORANGE, linewidth=2, markersize=7, label="BFS Vacancies")
-
-    ax1.set_xlabel("Job Postings", color=BLUE)
-    ax2.set_xlabel("BFS Macro Vacancies", color=ORANGE)
-    ax1.set_title("Scraped Postings vs BFS Vacancies by Region")
-    ax1.set_facecolor(BG)
-    ax2.set_facecolor(BG)
-    ax1.spines[["top"]].set_visible(False)
-    ax2.spines[["top"]].set_visible(False)
-    st.pyplot(fig)
+    show_fig(fig)
 
 
 def plot_salary_transparency(df: pd.DataFrame, min_group_n: int = 10) -> None:
     salary_by_canton = (
         df[df["canton"].notna()]
         .groupby("canton")
-        .agg(postings=("salary_available", "size"), salary_rate=("salary_available", "mean"))
+        .agg(
+            postings=("salary_available", "size"),
+            salary_rate=("salary_available", "mean"),
+        )
         .reset_index()
     )
-    salary_by_canton = salary_by_canton[salary_by_canton["postings"] >= min_group_n]
-    salary_by_canton = salary_by_canton[salary_by_canton["salary_rate"] > 0].sort_values("salary_rate", ascending=False)
+    salary_by_canton = salary_by_canton[
+        salary_by_canton["postings"] >= min_group_n
+    ]
+    salary_by_canton = salary_by_canton[
+        salary_by_canton["salary_rate"] > 0
+    ].sort_values("salary_rate", ascending=False)
 
     salary_by_role = (
         df[df["role"].notna()]
         .groupby("role")
-        .agg(postings=("salary_available", "size"), salary_rate=("salary_available", "mean"))
+        .agg(
+            postings=("salary_available", "size"),
+            salary_rate=("salary_available", "mean"),
+        )
         .reset_index()
     )
     salary_by_role = salary_by_role[salary_by_role["postings"] >= min_group_n]
-    salary_by_role = salary_by_role[salary_by_role["salary_rate"] > 0].sort_values("salary_rate", ascending=False)
+    salary_by_role = salary_by_role[
+        salary_by_role["salary_rate"] > 0
+    ].sort_values("salary_rate", ascending=False)
 
     col1, col2 = st.columns(2)
 
     with col1:
-        fig1, ax1 = plt.subplots(figsize=(5.5, 3.8), facecolor=BG)
         if salary_by_canton.empty:
             st.info(f"No salary-transparency signal by canton with min n={min_group_n}.")
         else:
+            fig1, ax1 = plt.subplots(figsize=(5.5, 3.8), facecolor=BG)
             bars = ax1.barh(
                 salary_by_canton["canton"][::-1],
                 salary_by_canton["salary_rate"][::-1] * 100,
@@ -626,13 +830,13 @@ def plot_salary_transparency(df: pd.DataFrame, min_group_n: int = 10) -> None:
             ax1.set_xlabel("% with salary")
             ax1.set_title("Salary Transparency by Canton")
             style_ax(ax1, remove_left=True)
-            st.pyplot(fig1)
+            show_fig(fig1)
 
     with col2:
-        fig2, ax2 = plt.subplots(figsize=(5.5, 3.8), facecolor=BG)
         if salary_by_role.empty:
             st.info(f"No salary-transparency signal by role with min n={min_group_n}.")
         else:
+            fig2, ax2 = plt.subplots(figsize=(5.5, 3.8), facecolor=BG)
             bars = ax2.barh(
                 salary_by_role["role"][::-1],
                 salary_by_role["salary_rate"][::-1] * 100,
@@ -652,31 +856,13 @@ def plot_salary_transparency(df: pd.DataFrame, min_group_n: int = 10) -> None:
             ax2.set_xlabel("% with salary")
             ax2.set_title("Salary Transparency by Role")
             style_ax(ax2, remove_left=True)
-            st.pyplot(fig2)
-
-
-def plot_top_companies(df: pd.DataFrame, top_n: int = 10) -> None:
-    company_counts = df["company"].dropna().astype(str)
-    company_counts = company_counts[company_counts.str.strip() != ""].value_counts().head(top_n)
-
-    if company_counts.empty:
-        st.info("No company data after filters.")
-        return
-
-    fig, ax = plt.subplots(figsize=(8, 4.5), facecolor=BG)
-    bars = ax.barh(company_counts.index[::-1], company_counts.values[::-1], color=ROSE, edgecolor="none", height=0.6)
-    for bar in bars:
-        ax.text(bar.get_width() + 0.3, bar.get_y() + bar.get_height() / 2, f"{int(bar.get_width())}", va="center", fontsize=8, color=TEXT)
-    ax.set_xlabel("Postings")
-    ax.set_title(f"Top {top_n} Companies by Posting Count")
-    style_ax(ax, remove_left=True)
-    st.pyplot(fig)
+            show_fig(fig2)
 
 
 def render_preview(df: pd.DataFrame) -> None:
     st.subheader("Overview")
+
     preview_cols = [
-        "job_id",
         "title",
         "company",
         "role",
@@ -691,7 +877,9 @@ def render_preview(df: pd.DataFrame) -> None:
     preview_cols = [col for col in preview_cols if col in df.columns]
 
     preview = df[preview_cols].copy()
-    preview["salary_available"] = preview["salary_available"].map({1.0: "Yes", 0.0: "No"}).fillna("No")
+    preview["salary_available"] = preview["salary_available"].map(
+        {1.0: "Yes", 0.0: "No"}
+    ).fillna("No")
 
     st.caption(f"Showing up to 200 rows out of {len(preview):,} filtered postings.")
     st.dataframe(preview.head(200), use_container_width=True, hide_index=True)
@@ -706,6 +894,39 @@ def render_preview(df: pd.DataFrame) -> None:
 
 
 # =========================================================
+# Insight boxes for research questions
+# =========================================================
+def render_rq1_insights() -> None:
+    st.info(
+        "**Key insights**  \n"
+        "• Python clearly dominates the skill landscape across postings.  \n"
+        "• SQL and cloud tools such as Azure and AWS appear consistently across multiple roles.  \n"
+        "• Engineering-oriented roles show stronger demand for infrastructure and deployment skills such as Kubernetes and CI/CD.  \n"
+        "• Industry comparisons suggest that technical skill profiles are not uniform, but vary by sector and role specialization."
+    )
+
+
+def render_rq2_insights() -> None:
+    st.info(
+        "**Key insights**  \n"
+        "• Job postings are concentrated in a limited number of cantons, especially Zurich and Geneva.  \n"
+        "• Data engineering roles dominate the dataset, indicating strong demand for infrastructure-oriented data work.  \n"
+        "• Skill profiles differ across seniority levels, with more advanced technical tools appearing more frequently in higher-level roles.  \n"
+        "• Most postings indicate full-time work, while flexible and part-time arrangements appear less often."
+    )
+
+
+def render_rq3_insights() -> None:
+    st.info(
+        "**Key insights**  \n"
+        "• Salary disclosure is generally rare in the observed Swiss job postings.  \n"
+        "• Only a very small share of postings explicitly mention salary information.  \n"
+        "• Differences across cantons and roles exist, but they should be interpreted cautiously because the number of salary observations is small.  \n"
+        "• Salary transparency itself therefore becomes an important analytical signal, beyond salary levels alone."
+    )
+
+
+# =========================================================
 # Main
 # =========================================================
 def main() -> None:
@@ -714,7 +935,8 @@ def main() -> None:
 
     st.title("Swiss Job Market Dashboard")
     st.caption(
-        "Interactive dashboard for Swiss data and AI job postings with micro-level job signals and BFS macro labour-market context."
+        "Interactive dashboard for Swiss data and AI job postings with micro-level "
+        "job signals and BFS macro labour-market context."
     )
 
     try:
@@ -730,9 +952,11 @@ def main() -> None:
         return
 
     metric_row(filtered)
+    render_executive_summary(filtered)
 
     # 1) Project context and pipeline
     render_project_context_text()
+
     p1, p2 = st.columns(2)
     with p1:
         plot_role_distribution(filtered)
@@ -749,11 +973,17 @@ def main() -> None:
 
     # 2) Data quality and methodology
     render_data_quality_text(filtered)
+
     d1, d2 = st.columns(2)
     with d1:
-        plot_skill_count_by_role(filtered)
+        plot_missingness_overview(filtered)
     with d2:
-        plot_workload_by_role(filtered, min_group_n=st.session_state.min_group_n)
+        plot_skill_count_by_role(filtered)
+
+    st.caption(
+        "The chart on the left highlights data sparsity and extraction limits. "
+        "The chart on the right shows how the number of extracted skills varies across roles."
+    )
 
     st.divider()
 
@@ -767,6 +997,8 @@ def main() -> None:
 This section focuses on overall skill demand and on how technical competencies cluster across roles and industries.
 """
     )
+    render_rq1_insights()
+
     r1c1, r1c2 = st.columns(2)
     with r1c1:
         plot_top_skills(filtered)
@@ -800,6 +1032,8 @@ This section focuses on overall skill demand and on how technical competencies c
 This section compares geographic concentration, role structure, seniority profiles, and workload patterns.
 """
     )
+    render_rq2_insights()
+
     r2c1, r2c2 = st.columns(2)
     with r2c1:
         plot_canton_distribution(filtered)
@@ -816,7 +1050,10 @@ This section compares geographic concentration, role structure, seniority profil
             min_group_n=st.session_state.min_group_n,
         )
     with r2c4:
-        plot_workload_by_role(filtered, min_group_n=st.session_state.min_group_n)
+        plot_workload_by_role(
+            filtered,
+            min_group_n=st.session_state.min_group_n,
+        )
 
     st.divider()
 
@@ -827,11 +1064,15 @@ This section compares geographic concentration, role structure, seniority profil
 This section treats salary disclosure as an analytical dimension in its own right.
 """
     )
-    plot_salary_transparency(filtered, min_group_n=max(10, st.session_state.min_group_n))
+    render_rq3_insights()
+    plot_salary_transparency(
+        filtered,
+        min_group_n=max(10, st.session_state.min_group_n),
+    )
 
     st.divider()
 
-    # Overview en altta
+    # 4) Overview at the end
     render_preview(filtered)
 
 
