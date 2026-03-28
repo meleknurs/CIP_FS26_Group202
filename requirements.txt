@@ -2,3 +2,8 @@ pandas
 selenium
 beautifulsoup4
 webdriver-manager
+
+streamlit
+matplotlib
+seaborn
+numpy

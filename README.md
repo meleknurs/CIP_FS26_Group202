@@ -5,7 +5,7 @@
 
 ## Phase 1: Web Scraping (Completed)
 
-Collect job listings from **Jobup.ch** using Selenium and export a schema-aligned dataset.
+Collect job listings from **Jobup.ch** using Selenium + BeautifulSoup (`src/sources/jobup_selenium.py`), including pagination over search result pages and detail-page extraction, and export a schema-aligned dataset.
 
 ### Quick Start
 
@@ -21,6 +21,14 @@ Collect job listings from **Jobup.ch** using Selenium and export a schema-aligne
 
    **Output:**  
    `data/processed/jobs_combined_{timestamp}.csv`
+
+3. **Run the Streamlit dashboard**
+   ```bash
+   streamlit run app.py
+   ```
+
+   **Dashboard data source:**  
+   `data/processed/jobs_merged_final.csv`
 
 ### Common Options
 
@@ -108,7 +116,7 @@ The datasets are merged using keys derived from the micro-level job data:
 
 ### Final Dataset Structure
 
-The resulting dataset, `data/processed/jobs_micro_macro_merged_final.csv`, combines:
+The resulting dataset, `data/processed/jobs_merged_final.csv`, combines:
 
 * **Micro-level Variables:** Job title, company, location, description, extracted skills, and salary transparency.
 * **Macro-level Variables:** Regional vacancy levels and ICT-specific industry demand indices.
@@ -132,6 +140,8 @@ src/
 
 notebooks/
   analysis and visualizations
+
+app.py             # Streamlit dashboard
 ```
 
 ---
@@ -140,6 +150,8 @@ notebooks/
 
 - **Web scraping:** Selenium + webdriver-manager  
 - **Data handling:** Pandas  
+- **Dashboard:** Streamlit  
+- **Visualization:** Matplotlib + Seaborn  
 - **Output format:** CSV  
 
 ---
@@ -151,3 +163,26 @@ notebooks/
 - Phase 3 integrates BFS vacancy indicators and merges macro-level labour market data with the job postings dataset.
 - The project follows a modular pipeline design, allowing easy extension (e.g., adding roles, platforms, or macro datasets).
 
+---
+
+## Team Contributions
+
+### Meleknur - Data Collection
+
+- Scraping job postings from **Jobup.ch** with Selenium + BeautifulSoup (`src/sources/jobup_selenium.py`)
+- Implementing pagination and detail-page data collection in the scraper
+- Exporting scraped outputs to `data/processed/` and setting up the GitHub repository
+- Streamlit dashboard implementation (`app.py`)
+
+### Ellie - Data Cleaning and Integration
+
+- Cleaning and preprocessing with pandas (missing values, datatypes, workload/salary/skills fields)
+- Fetching BFS macro data via API (regional and industry vacancy datasets)
+- Merging micro and macro datasets (`notebooks/04_micro_macro_integration.ipynb`)
+- Writing the final documentation
+
+### Faranak - Analysis, Visualization, and Documentation
+
+- Running EDA and research-question analysis (`notebooks/05_eda_rq_analysis.ipynb`)
+- Creating charts (bar charts, heatmaps, distribution plots) for EDA and reporting
+- Writing the final documentation
