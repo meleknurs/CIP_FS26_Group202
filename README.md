@@ -45,7 +45,7 @@ src/
     jobup_selenium.py  # Jobup.ch scraper
 
 notebooks/
-  analysis and visualizations
+  preprocessing, analysis and visualizations
 
 job_market_dashboard.py             # Streamlit dashboard
 ```
@@ -61,15 +61,16 @@ job_market_dashboard.py             # Streamlit dashboard
 - Streamlit dashboard (`job_market_dashboard.py`)
 
 ### Ellie – Data Cleaning and Integration
-- Cleaning and preprocessing with pandas (`notebooks/01_micro_preprocessing.py`)
-- Fetching BFS macro vacancy data via API (`notebooks/02_macro_level_cleaning_dataset A/B.py`)
+- Cleaning and preprocessing with pandas (`notebooks/01_micro_preprocessing.ipynb`)
+- Fetching BFS macro vacancy data via API (`notebooks/02_macro_level_cleaning_dataset A/B.ipynb`)
 - Merging micro and macro datasets (`notebooks/04_micro_macro_integration.ipynb`)
-- Writing the final documentation
+- Writing the final documentation (`cip_report_202.pdf`)
 
 ### Faranak – Analysis, Visualization, and Documentation
 - EDA and research-question analysis (`notebooks/05_eda_rq_analysis.ipynb`)
 - Charts (bar charts, heatmaps, distribution plots)
-- Writing the final documentation
+- Writing the final documentation (`cip_report_202.pdf`)
+- Packaging and submitting the project 
 
 # Notes
 
