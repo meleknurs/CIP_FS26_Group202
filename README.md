@@ -47,7 +47,7 @@ src/
 notebooks/
   analysis and visualizations
 
-app.py             # Streamlit dashboard
+job_market_dashboard.py             # Streamlit dashboard
 ```
 
 ---
