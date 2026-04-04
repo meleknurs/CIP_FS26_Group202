@@ -58,7 +58,7 @@ job_market_dashboard.py             # Streamlit dashboard
 - Scraping job postings from Jobup.ch with Selenium + BeautifulSoup (`src/sources/jobup_selenium.py`)
 - Implementing pagination and detail-page extraction
 - Exporting scraped outputs and setting up the GitHub repository
-- Streamlit dashboard (`app.py`)
+- Streamlit dashboard (`job_market_dashboard.py`)
 
 ### Ellie – Data Cleaning and Integration
 - Cleaning and preprocessing with pandas (`notebooks/01_micro_preprocessing.py`)
